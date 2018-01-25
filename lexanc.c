@@ -1,4 +1,7 @@
-This file contains code stubs for the lexical analyzer. Rename this file to be lexanc.c and fill in the stubs.    */
+/* lex1.c         14 Feb 01; 31 May 12; 11 Jan 18       */
+
+/* This file contains code stubs for the lexical analyzer.
+   Rename this file to be lexanc.c and fill in the stubs.    */
 
 /* Copyright (c) 2018 Gordon S. Novak Jr. and
    The University of Texas at Austin. */
@@ -35,15 +38,58 @@ This file contains code stubs for the lexical analyzer. Rename this file to be l
 void skipblanks ()
   {
       int c;
+      int sec;
+
       while ((c = peekchar()) != EOF
-             && (c == ' ' || c == '\n' || c == '\t'))
+             && (c == ' ' || c == '\n' || c == '\t') || c == '{' ||(c == '(' && (sec = peek2char()) != EOF && sec == '*' ))
+      {
+      if (c == '{')
+      {
+        getchar();
+	while ((c = peekchar() !='}') && c!= EOF)
+         getchar();
+	getchar();
+      }
+
+     // skip (* *) comments
+      else if( c  == '(' && sec == '*' )
+      {
+        getchar();
+        getchar();
+        while((c = peekchar() != '*') && (sec= peek2char() != ')') && c!= EOF && sec != EOF )
           getchar();
+
+	getchar();
+	getchar();
+      }
+
+      else
+	getchar();
+
     }
+}
 
 /* Get identifiers and reserved words */
 TOKEN identifier (TOKEN tok)
   {
-    }
+	int c;
+        int length = 0;
+        char mystring[50];
+	while (( c = peekchar()) ! EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC))
+	{
+	  c = getchar();
+	  mystring[length] = c;
+          length++;
+	}
+
+	if (length > 15)
+        {
+	  mystring[16] = '\0';
+	}
+
+	
+
+  }
 
 TOKEN getstring (TOKEN tok)
   {
