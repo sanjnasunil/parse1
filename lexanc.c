@@ -27,6 +27,20 @@
 #include "token.h"
 #include "lexan.h"
 
+static char *resprnt[] = { " ", "array", "begin", "case", "const", "do",
+                           "downto", "else", "end", "file", "for",
+                           "function", "goto", "if", "label", "nil",
+                           "of", "packed", "procedure", "program", "record",
+                           "repeat", "set", "then", "to", "type",
+                           "until", "var", "while", "with" };
+static char* opprnt[]  = {" ", "+", "-", "*", "/", ":=", "=", "<>", "<", "<=",
+                          ">=", ">",  "^", ".", "and", "or", "not", "div",
+                          "mod", "in", "if", "goto", "progn", "label",
+                          "funcall", "aref", "program", "float"};
+static char *delprnt[] = { "  ", " ,", " ;", " :", " (", " )", " [", " ]",
+                           ".."} ;
+
+
 /* This file will work as given with an input file consisting only
    of integers separated by blanks:
    make lex1
@@ -74,30 +88,150 @@ TOKEN identifier (TOKEN tok)
   {
 	int c;
         int length = 0;
-        char mystring[50];
-	while (( c = peekchar()) ! EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC))
+        char mystring[16];
+	int is_res;
+	int is_res_op;
+
+	while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC))
 	{
 	  c = getchar();
-	  mystring[length] = c;
-          length++;
+	  if (length < 15)
+		mystring[length] = c;
+		length++;
 	}
+	
+	 mystring[length] = '\0';
 
-	if (length > 15)
-        {
-	  mystring[16] = '\0';
-	}
 
 	
+	
+	for(int count = 1; count < 30; count++)
+	{
+	  is_res = strcmp(mystring, resprnt[count]);
+	  if (is_res == 0)
+	  {
+		tok -> tokentype = RESERVED;
+		tok -> whichval = count;
+		return tok;
+	  }
+
+	}
+
+	 for(int count = 14; count < 20; count++)
+        {
+          is_res_op = strcmp(mystring, opprnt[count]);
+          if (is_res_op == 0)
+          {
+                tok -> tokentype = OPERATOR;
+                tok -> whichval = count;
+                return tok;
+          }
+
+        }
+
+
+	if (is_res != 0 )
+	{
+		tok -> tokentype = IDENTIFIERTOK;
+		strcpy(tok -> stringval, mystring);
+	}
+	return tok; 
+
+
 
   }
 
 TOKEN getstring (TOKEN tok)
   {
-    }
+		
+	int c;
+        int length = 0;
+        char mystring[16];
+        int is_res;
+	getchar();
+	int next;
+
+        while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC || c == '\''))
+        {
+          if (length < 15)
+	    if (c == '\'' && (next = peek2char()) == '\'')
+	    {
+	      mystring[length] = c;
+	      length++;
+	      getchar();
+	      getchar();
+	    }	
+	     else if (c == '\'')
+	     {
+		getchar();
+	     }
+
+	     else
+	     {
+		mystring[length] = c;
+                length++;
+		getchar();
+
+	     }
+           else 
+	    getchar();
+        }
+
+         mystring[length] = '\0';
+
+	tok -> tokentype = STRINGTOK;
+                strcpy(tok -> stringval, mystring);
+	return tok;
+
+
+  }
 
 TOKEN special (TOKEN tok)
   {
-    }
+
+	int c;
+        int length = 0;
+        char mystring[16];
+	int is_op;
+	int is_del;
+
+	while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == SPECIAL))
+	{
+	  c = getchar();
+	  mystring[length] = c;
+                length++;
+	}
+
+	mystring[length] = '\0';
+	
+	for(int count = 1; count < 14; count++)
+        {
+          is_op = strcmp(mystring, opprnt[count]);
+          if (is_op == 0)
+          {
+                tok -> tokentype = OPERATOR;
+                tok -> whichval = count;
+                return tok;
+          }
+
+        }
+
+	for(int count = 1; count < 9; count++)
+        {
+          is_del = strcmp(mystring, delprnt[count]);
+          if (is_del == 0)
+          {
+                tok -> tokentype = DELIMITER;
+                tok -> whichval = count;
+                return tok;
+          }
+
+        }
+
+	
+
+
+  }
 
 /* Get and convert unsigned numbers of all types. */
 TOKEN number (TOKEN tok)
