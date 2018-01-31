@@ -99,9 +99,13 @@ TOKEN identifier (TOKEN tok)
 	{
 	  c = getchar();
 	  if (length < 15)
+          {
 		mystring[length] = c;
 		length++;
+          }
 	}
+
+
 	
 	 mystring[length] = '\0';
 
@@ -153,20 +157,25 @@ TOKEN getstring (TOKEN tok)
         int is_res;
 	getchar();
 	int next;
+        int closing_quote = 0;
 
-        while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC || c == '\''))
+        while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC || CHARCLASS[c] == SPECIAL || c == ' '||  c == '\''))
         {
+
           if (length < 15)
 	    if (c == '\'' && (next = peek2char()) == '\'')
 	    {
 	      mystring[length] = c;
 	      length++;
 	      getchar();
-	      getchar();
+              getchar();
 	    }	
 	     else if (c == '\'')
 	     {
-		getchar();
+                closing_quote++;
+                getchar();
+                if (closing_quote == 2)
+			break;
 	     }
 
 	     else
@@ -198,14 +207,86 @@ TOKEN special (TOKEN tok)
 	char del_string[50];
 	int is_op;
 	int is_del;
+        int get_twice;
+        int next_char;
+       while (( c = peekchar()) != EOF && (CHARCLASS[c] == SPECIAL))
+       {
 
-	while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == SPECIAL))
-	{
+          next_char = peek2char();
+          if(c == '.' && next_char == '.')
+	  {
+                getchar();
+		mystring[length] = c;
+                length++;
+                c = getchar();
+                mystring[length] = c;
+                length++;
+                getchar();
+                break;
+           }
+
+
+
+	  else if(c == '>' && next_char == '=')
+          {
+		getchar();
+                mystring[length] = c;
+                length++;
+                c = getchar();
+                mystring[length] = c;
+                length++;
+                getchar();
+                break;
+           }
+
+	  else if(c == '<' && next_char == '>' )
+          {
+                getchar();
+                mystring[length] = c;
+                length++;
+                c = getchar();
+                mystring[length] = c;
+                length++;
+                getchar();
+                break;
+           }
+
+	  else if(c == '<' && next_char == '=' )
+          {
+           	getchar();     
+                mystring[length] = c;
+                length++;
+                c = getchar();
+                mystring[length] = c;
+		length++;
+                getchar(); 
+                break;
+           }
+
+	
+	   else if(c == ':' && next_char == '=')
+          {
+		getchar();
+                mystring[length] = c;
+                length++;
+                c = getchar();
+                mystring[length] = c;
+                length++;
+                getchar();
+                break;
+           }
+
+
+         
+          else
+	  {	
+
 	  c = getchar();
 	  mystring[length] = c;
                 length++;
-	}
-
+            break;
+	  }
+       }
 	mystring[length] = '\0';
 	
 	for(int count = 1; count < 14; count++)
@@ -241,43 +322,43 @@ TOKEN special (TOKEN tok)
 /* Get and convert unsigned numbers of all types. */
 TOKEN number (TOKEN tok)
   {
-    long num;
+ long num;
     int  c, charval;
     int found_dec = 0;
     int frac_count = 0;
-    double int_as_float;
+    float int_as_float;
     exponents[0] = 1.0;
 
     for(int count = 1; count < 38; count++)
     {
-	exponents[count] = exponents[count - 1] * 10.0;
+        exponents[count] = exponents[count - 1] * 10.0;
     }
 
-  
+
     num = 0;
     while ( (c = peekchar()) != EOF
-            && CHARCLASS[c] == NUMERIC || CHARCLASS[c] == SPECIAL)
-      {  
+            && CHARCLASS[c] == NUMERIC || c == '.')
+      {
 
 
-	if (found_dec == 1)
+        if (found_dec == 1)
         {
-	  frac_count++;
-	}
+          frac_count++;
+        }
 
-	if (c == '.')
-	{
-		found_dec = 1;
-		getchar();
-	}
+        if (c == '.')
+        {
+                found_dec = 1;
+                getchar();
+        }
 
-	else
-	{
-		 c = getchar();
+        else
+        {
+                 c = getchar();
          charval = (c - '0');
           num = num * 10 + charval;
 
-	}	
+        }
 
       }
 
@@ -286,21 +367,27 @@ TOKEN number (TOKEN tok)
     {
       tok->tokentype = NUMBERTOK;
       tok->basicdt = INTEGER;
-      tok->intval = num;
+
+tok->intval = num;
       return (tok);
     }
 
-    else 
+    else
 
     {
+
       int_as_float = num;
       int_as_float = int_as_float / exponents[frac_count];
       tok->tokentype = NUMBERTOK;
       tok->basicdt = REAL;
       tok->realval = int_as_float;
       return (tok);
-   
+
     }
+
+
+
+   
 
 
 
