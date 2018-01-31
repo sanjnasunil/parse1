@@ -15,3 +15,4 @@ begin
       writeln('*')
    end
 end.
+

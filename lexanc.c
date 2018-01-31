@@ -37,8 +37,11 @@ static char* opprnt[]  = {" ", "+", "-", "*", "/", ":=", "=", "<>", "<", "<=",
                           ">=", ">",  "^", ".", "and", "or", "not", "div",
                           "mod", "in", "if", "goto", "progn", "label",
                           "funcall", "aref", "program", "float"};
-static char *delprnt[] = { "  ", " ,", " ;", " :", " (", " )", " [", " ]",
-                           ".."} ;
+static char *delprnt[] = { "  ", ",", ";", ":", "(", ")", "[", "]",
+                           ".."};
+
+static double exponents[38];
+
 
 
 /* This file will work as given with an input file consisting only
@@ -192,6 +195,7 @@ TOKEN special (TOKEN tok)
 	int c;
         int length = 0;
         char mystring[16];
+	char del_string[50];
 	int is_op;
 	int is_del;
 
@@ -215,10 +219,11 @@ TOKEN special (TOKEN tok)
           }
 
         }
+	 
 
 	for(int count = 1; count < 9; count++)
         {
-          is_del = strcmp(mystring, delprnt[count]);
+ 	  is_del = strcmp(mystring, delprnt[count]);
           if (is_del == 0)
           {
                 tok -> tokentype = DELIMITER;
@@ -226,7 +231,7 @@ TOKEN special (TOKEN tok)
                 return tok;
           }
 
-        }
+       }
 
 	
 
@@ -235,18 +240,70 @@ TOKEN special (TOKEN tok)
 
 /* Get and convert unsigned numbers of all types. */
 TOKEN number (TOKEN tok)
-  { long num;
+  {
+    long num;
     int  c, charval;
+    int found_dec = 0;
+    int frac_count = 0;
+    double int_as_float;
+    exponents[0] = 1.0;
+
+    for(int count = 1; count < 38; count++)
+    {
+	exponents[count] = exponents[count - 1] * 10.0;
+    }
+
+  
     num = 0;
     while ( (c = peekchar()) != EOF
-            && CHARCLASS[c] == NUMERIC)
-      {   c = getchar();
-          charval = (c - '0');
+            && CHARCLASS[c] == NUMERIC || CHARCLASS[c] == SPECIAL)
+      {  
+
+
+	if (found_dec == 1)
+        {
+	  frac_count++;
+	}
+
+	if (c == '.')
+	{
+		found_dec = 1;
+		getchar();
+	}
+
+	else
+	{
+		 c = getchar();
+         charval = (c - '0');
           num = num * 10 + charval;
-        }
-    tok->tokentype = NUMBERTOK;
-    tok->basicdt = INTEGER;
-    tok->intval = num;
-    return (tok);
+
+	}	
+
+      }
+
+
+    if(found_dec == 0 )
+    {
+      tok->tokentype = NUMBERTOK;
+      tok->basicdt = INTEGER;
+      tok->intval = num;
+      return (tok);
+    }
+
+    else 
+
+    {
+      int_as_float = num;
+      int_as_float = int_as_float / exponents[frac_count];
+      tok->tokentype = NUMBERTOK;
+      tok->basicdt = REAL;
+      tok->realval = int_as_float;
+      return (tok);
+   
+    }
+
+
+
+
   }
 
