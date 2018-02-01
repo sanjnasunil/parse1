@@ -352,7 +352,6 @@ TOKEN number (TOKEN tok)
             && CHARCLASS[c] == NUMERIC || c == '.' && (sec = peek2char() != '.'))
       {
         
-  
         if (found_dec == 1)
         {
           frac_count++;
@@ -366,9 +365,24 @@ TOKEN number (TOKEN tok)
 
         else
         {
-                 c = getchar();
-         charval = (c - '0');
-          num = num * 10 + charval;
+
+	  if(frac_count < 9 && found_dec == 1)
+          {
+	     c = getchar();
+             charval = (c - '0');
+             num = num * 10 + charval;
+          }
+
+          else if ( frac_count >= 9 && found_dec == 1)
+          {
+	     c = getchar();
+	  }  
+	  else
+          {
+            c = getchar();
+            charval = (c - '0');
+            num = num * 10 + charval;
+          }
         }
 
       }
@@ -453,7 +467,16 @@ TOKEN number (TOKEN tok)
 
     {
       int_as_float = num;
-      int_as_float = int_as_float / exponents[frac_count];
+      if (frac_count > 8)
+      {
+        int_as_float = int_as_float / exponents[8];
+      }
+
+      else
+      {
+	int_as_float = int_as_float / exponents[frac_count];
+      }
+     //int_as_float = int_as_float / exponents[frac_count];
       tok->tokentype = NUMBERTOK;
       tok->basicdt = REAL;
       tok->realval = int_as_float;
