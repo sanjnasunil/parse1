@@ -329,11 +329,14 @@ TOKEN special (TOKEN tok)
 TOKEN number (TOKEN tok)
   {
  long num;
-    int  c, charval;
+    int  c, charval, charval_exp; 
     int found_dec = 0;
     int frac_count = 0;
     int is_positive = 0;
+    int has_sign = 1;
     int is_negative = 0;
+    int exp_num = 0;
+    int has_exp = 0;
     float int_as_float;
     exponents[0] = 1.0;
     int sec;
@@ -346,10 +349,10 @@ TOKEN number (TOKEN tok)
 
     num = 0;
     while ( (c = peekchar()) != EOF
-            && CHARCLASS[c] == NUMERIC || c == '.' && (sec = peek2char() != '.') )
+            && CHARCLASS[c] == NUMERIC || c == '.' && (sec = peek2char() != '.'))
       {
-
-
+        
+  
         if (found_dec == 1)
         {
           frac_count++;
@@ -366,28 +369,89 @@ TOKEN number (TOKEN tok)
                  c = getchar();
          charval = (c - '0');
           num = num * 10 + charval;
-
         }
 
       }
 
-/* if ((c = peekchar())  == '.' && (sec = peek2char()) != '.')
-{
-	getchar();
-} */
+   while((c = peekchar()) != EOF &&  CHARCLASS[c] == NUMERIC || c == 'e' || c =='+' || c == '-')
+   {
+	if( c == 'e')
+	{
+           int sign = peek2char();
+           if(sign != '+' &&  sign != '-')
+           {
+		has_sign = 0;
+	   }
+            
+               has_exp = 1;
+		getchar();
+	}
+
+	else if(c == '-')
+        {
+		is_negative = 1;
+                getchar();
+
+	}
+        else if(c == '+') {
+
+	 is_positive = 1;
+         getchar();
+	}
+	
+	else
+        {
+	  c = getchar();
+         charval_exp = (c - '0');
+         exp_num = exp_num * 10 + charval_exp;
+	}
+
+
+   }
+
+  if(has_exp == 1)
+  {
+
+   int_as_float = num;
+   int_as_float = int_as_float / exponents[frac_count];
+   
+       if(has_sign == 0)
+        {
+                is_positive = 1;
+                
+        }
+
+    if(is_positive == 1)
+    {
+	int_as_float = int_as_float * exponents[exp_num];
+    }
+
+    if(is_negative == 1)
+    {
+
+        int_as_float = int_as_float / exponents[exp_num];
+    }
+
+    tok->tokentype = NUMBERTOK;
+    tok->basicdt = REAL;
+    tok-> realval = int_as_float;
+   return (tok);
+
+  }
+
+
     if(found_dec == 0 )
     {
       tok->tokentype = NUMBERTOK;
       tok->basicdt = INTEGER;
 
-tok->intval = num;
+      tok->intval = num;
       return (tok);
     }
 
     else
 
     {
-
       int_as_float = num;
       int_as_float = int_as_float / exponents[frac_count];
       tok->tokentype = NUMBERTOK;
