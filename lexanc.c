@@ -53,8 +53,8 @@ static double exponents[38];
 
 /* Skip blanks and whitespace.  Expand this function to skip comments too. */
 void skipblanks ()
-  {
-      int c;
+{
+ int c;
       int sec;
 
       while ((c = peekchar()) != EOF
@@ -73,7 +73,7 @@ void skipblanks ()
       {
         getchar();
         getchar();
-        while((c = peekchar() != '*') && (sec= peek2char() != ')') && c!= EOF && sec != EOF )
+        while((c = peekchar() != '*') || (sec= peek2char() != ')') && c!= EOF && sec != EOF )
           getchar();
 
 	getchar();
@@ -84,7 +84,10 @@ void skipblanks ()
 	getchar();
 
     }
+
 }
+
+
 
 /* Get identifiers and reserved words */
 TOKEN identifier (TOKEN tok)
@@ -152,45 +155,48 @@ TOKEN getstring (TOKEN tok)
   {
 		
 	int c;
-        int length = 0;
+        int length;
         char mystring[16];
         int is_res;
 	getchar();
 	int next;
         int closing_quote = 0;
+	int too_big = 0;
 
-        while (( c = peekchar()) !=  EOF && (CHARCLASS[c] == ALPHA || CHARCLASS[c] == NUMERIC || CHARCLASS[c] == SPECIAL || c == ' '||  c == '\''))
+
+
+        for (length = 0; length < 15; length++)
         {
-
-          if (length < 15)
-	    if (c == '\'' && (next = peek2char()) == '\'')
-	    {
-	      mystring[length] = c;
-	      length++;
-	      getchar();
+           c = peekchar();
+          if (c == EOF)
+            break;
+          else if (c == '\'' && (next = peek2char()) == '\'')
+            {
+              mystring[length] = c;
               getchar();
-	    }	
-	     else if (c == '\'')
-	     {
-                closing_quote++;
-                getchar();
-                if (closing_quote == 2)
-			break;
-	     }
+            }
 
-	     else
-	     {
-		mystring[length] = c;
-                length++;
-		getchar();
 
-	     }
-           else 
-	    getchar();
+           else if( c == '\'' )
+           {
+		break;
+           }
+		
+           else
+	    mystring[length] = c;
+
+	getchar();
+
         }
 
          mystring[length] = '\0';
-
+	c  = peekchar();
+       if(c == '\'')
+        getchar();
+        while (c != '\'' && c != EOF)
+        {
+          c = getchar();
+        }
 	tok -> tokentype = STRINGTOK;
                 strcpy(tok -> stringval, mystring);
 	return tok;
@@ -221,7 +227,7 @@ TOKEN special (TOKEN tok)
                 c = getchar();
                 mystring[length] = c;
                 length++;
-                getchar();
+              //  getchar();
                 break;
            }
 
@@ -326,8 +332,11 @@ TOKEN number (TOKEN tok)
     int  c, charval;
     int found_dec = 0;
     int frac_count = 0;
+    int is_positive = 0;
+    int is_negative = 0;
     float int_as_float;
     exponents[0] = 1.0;
+    int sec;
 
     for(int count = 1; count < 38; count++)
     {
@@ -337,7 +346,7 @@ TOKEN number (TOKEN tok)
 
     num = 0;
     while ( (c = peekchar()) != EOF
-            && CHARCLASS[c] == NUMERIC || c == '.')
+            && CHARCLASS[c] == NUMERIC || c == '.' && (sec = peek2char() != '.') )
       {
 
 
@@ -362,7 +371,10 @@ TOKEN number (TOKEN tok)
 
       }
 
-
+/* if ((c = peekchar())  == '.' && (sec = peek2char()) != '.')
+{
+	getchar();
+} */
     if(found_dec == 0 )
     {
       tok->tokentype = NUMBERTOK;
