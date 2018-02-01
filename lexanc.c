@@ -22,6 +22,7 @@
 */
 
 #include <stdio.h>
+#include <limits.h>
 #include <ctype.h>
 #include <string.h>
 #include "token.h"
@@ -328,7 +329,8 @@ TOKEN special (TOKEN tok)
 /* Get and convert unsigned numbers of all types. */
 TOKEN number (TOKEN tok)
   {
- long num;
+
+long num;
     int  c, charval, charval_exp; 
     int found_dec = 0;
     int frac_count = 0;
@@ -338,8 +340,10 @@ TOKEN number (TOKEN tok)
     int exp_num = 0;
     int has_exp = 0;
     float int_as_float;
+    int int_error = 0;
     exponents[0] = 1.0;
     int sec;
+    int has_zero = 0;
 
     for(int count = 1; count < 38; count++)
     {
@@ -361,6 +365,17 @@ TOKEN number (TOKEN tok)
         {
                 found_dec = 1;
                 getchar();
+
+		while((c = peekchar()) !=EOF && c == '0' )
+		{
+			frac_count++;
+			has_zero = 1;
+			c = getchar();
+		        charval = (c - '0');
+
+                        num = num * 10 + charval;
+
+		}
         }
 
         else
@@ -370,18 +385,36 @@ TOKEN number (TOKEN tok)
           {
 	     c = getchar();
              charval = (c - '0');
+		
              num = num * 10 + charval;
+
+             
           }
 
           else if ( frac_count >= 9 && found_dec == 1)
           {
-	     c = getchar();
+
+		if (has_zero == 1)
+                {
+			c = getchar();
+             		charval = (c - '0');
+             		num = num * 10 + charval;
+		}
+		else
+	     		c = getchar();
 	  }  
 	  else
           {
             c = getchar();
             charval = (c - '0');
-            num = num * 10 + charval;
+
+            if (num > INT_MAX || (num * 10 + charval) > INT_MAX)
+             {
+		int_error = 1;
+             }
+
+            else
+              num = num * 10 + charval;
           }
         }
 
@@ -456,6 +489,12 @@ TOKEN number (TOKEN tok)
 
     if(found_dec == 0 )
     {
+
+	if (int_error == 1)
+        {
+		printf("Integer number out of range\n");
+
+        }
       tok->tokentype = NUMBERTOK;
       tok->basicdt = INTEGER;
 
@@ -467,8 +506,9 @@ TOKEN number (TOKEN tok)
 
     {
       int_as_float = num;
-      if (frac_count > 8)
+      if (frac_count > 8 && has_zero == 0)
       {
+
         int_as_float = int_as_float / exponents[8];
       }
 
@@ -486,10 +526,7 @@ TOKEN number (TOKEN tok)
 
 
 
-   
 
 
 
-
-  }
-
+}
