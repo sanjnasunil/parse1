@@ -22,6 +22,7 @@
 */
 
 #include <stdio.h>
+#include <float.h>
 #include <limits.h>
 #include <ctype.h>
 #include <string.h>
@@ -330,7 +331,7 @@ TOKEN special (TOKEN tok)
 TOKEN number (TOKEN tok)
   {
 
-long num;
+long double num;
     int  c, charval, charval_exp; 
     int found_dec = 0;
     int frac_count = 0;
@@ -339,10 +340,11 @@ long num;
     int is_negative = 0;
     int exp_num = 0;
     int has_exp = 0;
-    float int_as_float;
+    long double int_as_float;
     int int_error = 0;
     exponents[0] = 1.0;
     int sec;
+    int float_error = 0;
     int has_zero = 0;
 
     for(int count = 1; count < 38; count++)
@@ -373,7 +375,7 @@ long num;
 			c = getchar();
 		        charval = (c - '0');
 
-                        num = num * 10 + charval;
+                   num = num * 10 + charval;
 
 		}
         }
@@ -386,7 +388,7 @@ long num;
 	     c = getchar();
              charval = (c - '0');
 		
-             num = num * 10 + charval;
+               num = num * 10 + charval;
 
              
           }
@@ -398,7 +400,8 @@ long num;
                 {
 			c = getchar();
              		charval = (c - '0');
-             		num = num * 10 + charval;
+
+             		 num = num * 10 + charval;
 		}
 		else
 	     		c = getchar();
@@ -450,7 +453,7 @@ long num;
         {
 	  c = getchar();
          charval_exp = (c - '0');
-         exp_num = exp_num * 10 + charval_exp;
+          exp_num = exp_num * 10 + charval_exp;
 	}
 
 
@@ -479,6 +482,13 @@ long num;
         int_as_float = int_as_float / exponents[exp_num];
     }
 
+
+if (int_as_float > FLT_MAX || int_as_float < FLT_MIN )
+{
+	printf("Floating number out of range\n");
+}
+
+printf("The INT AS FLOAT IS %lf and The frac count issss %d", int_as_float, frac_count );
     tok->tokentype = NUMBERTOK;
     tok->basicdt = REAL;
     tok-> realval = int_as_float;
@@ -497,7 +507,7 @@ long num;
         }
       tok->tokentype = NUMBERTOK;
       tok->basicdt = INTEGER;
-
+printf("HERE INT");
       tok->intval = num;
       return (tok);
     }
@@ -505,6 +515,13 @@ long num;
     else
 
     {
+
+      if (float_error == 1)
+      {
+
+	printf("Float number out of range\n\n");
+
+      }
       int_as_float = num;
       if (frac_count > 8 && has_zero == 0)
       {
@@ -514,9 +531,19 @@ long num;
 
       else
       {
+        
 	int_as_float = int_as_float / exponents[frac_count];
+
       }
-     //int_as_float = int_as_float / exponents[frac_count];
+
+
+         printf("The INT AS FLOAT IS %lf and The frac count issss %d", int_as_float, frac_count );
+
+     if (int_as_float > FLT_MAX || int_as_float < FLT_MIN )
+     {
+        printf("Floating number out of range\n\n");
+     }
+
       tok->tokentype = NUMBERTOK;
       tok->basicdt = REAL;
       tok->realval = int_as_float;
