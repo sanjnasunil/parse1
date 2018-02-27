@@ -64,7 +64,8 @@ digit    [0-9]
 id       {letter}({letter}|{digit})*
 int_val  [0-9]+
 fnumber  {digit}+(\.{digit}+)?(e[+\-]?{digit}+)?
-string_val \'([^\\\']|\\.)*\'
+string_val '([^']|'')*'
+
 
 %%
 {string_val}  {return(install_string());}
@@ -90,6 +91,14 @@ not       {return(maketoken(OPERATOR, NOT));}
 div       {return(maketoken(OPERATOR, DIV));}
 mod       {return(maketoken(OPERATOR, MOD));}
 in        {return(maketoken(OPERATOR, IN));}
+program   {return(maketoken(RESERVED, PROGRAM));}
+const     {return(maketoken(RESERVED, CONST));}
+var       {return(maketoken(RESERVED, VAR));}
+for       {return(maketoken(RESERVED, FOR));}
+to        {return(maketoken(RESERVED, TO));}
+do        {return(maketoken(RESERVED, DO));}
+repeat    {return(maketoken(RESERVED, REPEAT));}
+until     {return(maketoken(RESERVED, UNTIL));}
 ","       {return(maketoken(DELIMITER, COMMA));}
 ":"       {return(maketoken(DELIMITER, COLON));}
 "("       {return(maketoken(DELIMITER, LPAREN));}
@@ -191,29 +200,27 @@ int install_string()
   yylval->tokentype = STRINGTOK;
   n = yyleng;            /* number of characters */
  /*  if ( n > 15 ) n = 15; */
-  for (i = 1; i < n; i++)
+  for (i = 1; i < n-1; i++)
    {
         c = yytext[i];
 
         if (c == '\'' &&   yytext[i+1]  == '\'')
         { 
 
-           printf("HERE");
            yylval->stringval[i - 1] = c;
            i++;
 	}
         
-        if (c == '\'')
-        {
-          break;
-        }
+      
+        
 
         if (count > 14)
          break;
           /* if (islower(c)) c = toupper(c); */ /* to raise to upper case */
-     yylval->stringval[i - 1] = c;
-     count++;
-    };
+       yylval->stringval[i - 1] = c;
+       count++;
+     }
+    
   yylval->stringval[count] = '\0';
 
           /*  printf("id  %10s   n = %4d\n", yytext, n); */
