@@ -77,7 +77,7 @@ TOKEN parseresult;
 
 %%
 
-program : PROGRAM IDENTIFIER LPAREN id_list RPAREN SEMICOLON field_list block  DOT {parseresult = makeprogram($2, $4, $7); }
+program : PROGRAM IDENTIFIER LPAREN id_list RPAREN SEMICOLON vblock DOT {parseresult = makeprogram($2, $4, $7); }
 
 
 unsigned_constant : IDENTIFIER | NUMBER | NIL | STRING
@@ -119,7 +119,7 @@ factor : unsigned_constant
        | LPAREN expression RPAREN
        | NOT factor
 
-funcall : IDENTIFIER LPAREN expr_list RPAREN
+funcall : IDENTIFIER LPAREN expr_list RPAREN {$$ = makefuncall($2, $1, $3);} 
 
 times_op : TIMES | DIVIDE | DIV | MOD | AND
 
@@ -134,7 +134,7 @@ simple_expression : sign term | term
 compare_op : EQ | LT | GT | NE | LE | GE | IN
 
 expression : expression compare_op simple_expression
-           | simple_expression
+           | simple_expression {$$ = $1;}
 
 numlist : NUMBER|
           NUMBER  COMMA numlist
@@ -164,36 +164,33 @@ vdef_list : vdef SEMICOLON
 vblock : VAR vdef_list block { $$ = $3 ; }
        | block
 
-block : BEGINBEGIN statement endpart
+block : BEGINBEGIN statement endpart {$$ = cons($2,$3);}
 
-endpart : SEMICOLON statement endpart
-        | END
+/* endpart : SEMICOLON statement endpart
+        | END */
 
 label : NUMBER COLON statement
 
- statement : BEGINBEGIN statement endpart 
+ statement : BEGINBEGIN statement endpart {$$ = makeprogn($1, cons($2,$3));}
           | IF expression THEN statement ELSE statement
           | IF expression THEN statement
           | variable ASSIGN expression {$$ = binop($2, $1, $3); } 
-          | funcall
+          | funcall    
           | WHILE expression DO statement
-          | REPEAT statement_list UNTIL expression
-          | FOR IDENTIFIER ASSIGN expression TO expression DO statement
+          | REPEAT statement UNTIL expression
+          | FOR IDENTIFIER ASSIGN expression TO expression DO statement {$$ = makefor(1,$1, binop($3, $2, $4),$5,$6,$7, $8);}  
           | GOTO NUMBER
           | label 
 
- statement_list : statement 
-               | statement SEMICOLON statement_list 
-  statement  :  BEGINBEGIN statement endpart
-                                       { $$ = makeprogn($1,cons($2, $3)); } 
-             |  IF expr THEN statement endif   { $$ = makeif($1, $2, $4, $5); }
-             |  assignment
-             ; 
+
+/* statement_list : statement { $$ = makeprogn($1, $1); }
+               | statement SEMICOLON statement_list {$$ = cons($1,makeprogn($1,$3)); }
+             ; */
   endpart    :  SEMICOLON statement endpart    { $$ = cons($2, $3); }
              |  END                            { $$ = NULL; }
              ;
   endif      :  ELSE statement                 { $$ = $2; }
-  assignment :  IDENTIFIER ASSIGN expr         { $$ = binop($2, $1, $3); }
+   assignment :  IDENTIFIER ASSIGN expr         { $$ = binop($2, $1, $3); }
              ;
   expr       :  expr PLUS term                 { $$ = binop($2, $1, $3); }
              |  term 
@@ -231,20 +228,200 @@ label : NUMBER COLON statement
 TOKEN makeprogram (TOKEN name, TOKEN args, TOKEN statements)
 {
 TOKEN optok = talloc();
-TOKEN newtok = talloc();
-TOKEN progn_tok = talloc();
+TOKEN argtok = talloc();
+TOKEN statement_tok = talloc();
 
 optok->tokentype = OPERATOR;
 optok->whichval = PROGRAMOP;
 optok-> operands = name;
 
-newtok = makeprogn(newtok , args);
-progn_tok = makeprogn(progn_tok , statements);
-name -> link = newtok;
-newtok -> link = progn_tok;
-progn_tok -> link = statements;
+argtok = makeprogn(argtok , args);
+statement_tok = makeprogn(statement_tok , statements);
+name -> link = argtok;
+argtok -> link = statement_tok;
 return optok;
 }
+
+TOKEN makefuncall(TOKEN tok, TOKEN fn, TOKEN args)
+{
+
+tok->tokentype = OPERATOR;
+tok->whichval = FUNCALLOP;
+tok->operands = fn;
+fn->link = args;
+return tok;
+
+}
+
+TOKEN copytok(TOKEN origtok)
+{
+  TOKEN newtok = talloc();
+ *newtok = *origtok;
+  newtok -> link = NULL;
+  newtok -> operands = NULL;
+
+}
+
+TOKEN makefor(int sign, TOKEN tok, TOKEN asg, TOKEN tokb, TOKEN endexpr,
+              TOKEN tokc, TOKEN statement)
+{
+
+
+TOKEN answer = talloc();
+TOKEN extra_tok = talloc();
+TOKEN extra_link = talloc();
+TOKEN label_tok = talloc();
+TOKEN if_tok = talloc();
+TOKEN func_tok = talloc();
+TOKEN less_than = talloc();
+TOKEN less_than_link = talloc();
+TOKEN expres = talloc(); 
+TOKEN numtok = talloc();
+TOKEN assign_tok = talloc();
+TOKEN expres_cpy = talloc();
+TOKEN plus_op = talloc();
+TOKEN expres_cpy2 = talloc();
+TOKEN numtok2 = talloc(); 
+TOKEN goto_tok = talloc();
+TOKEN func_tokcpy = talloc(); 
+
+// function call
+ func_tok = makeprogn(func_tok, statement);
+
+// num label token
+  numtok->tokentype = NUMBERTOK;
+  numtok->basicdt = INTEGER;
+  numtok->intval = 0;
+
+  numtok2->tokentype = NUMBERTOK;
+  numtok2->basicdt = INTEGER;
+  numtok2->intval = 1;
+
+// variable i 
+  expres = copytok(asg->operands);
+
+// less than token 
+ less_than->tokentype = OPERATOR;
+ less_than -> whichval = LEOP;
+ less_than->operands = expres;
+ 
+ less_than-> link = func_tok;
+
+ // func_tok->operands = statement;
+ expres -> link = endexpr;
+ endexpr->link = NULL;
+
+// label token
+  label_tok->tokentype = OPERATOR;
+  label_tok -> whichval = LABELOP;
+  label_tok->operands = numtok;
+  
+// if token
+  if_tok->tokentype = OPERATOR;
+  if_tok->whichval = IFOP;
+  if_tok->operands = less_than; 
+
+
+// increment token
+  expres_cpy = copytok(expres);
+  assign_tok->tokentype = OPERATOR;
+  assign_tok -> whichval = ASSIGNOP;
+  assign_tok->operands = expres_cpy;
+//  statement->link = assign_tok;
+
+func_tokcpy = func_tok->operands;
+
+  plus_op->tokentype = OPERATOR;
+  plus_op -> whichval = PLUSOP;
+  plus_op->operands = expres_cpy2;
+  expres_cpy ->link = plus_op;
+  expres_cpy2->link = numtok2; 
+
+  goto_tok->tokentype = OPERATOR;
+  goto_tok->whichval = GOTOOP;
+  goto_tok->operands = numtok;
+
+ assign_tok->link = goto_tok;
+
+answer = makeprogn(answer, asg);
+extra_tok =answer->operands;
+extra_tok->link = label_tok;
+label_tok->link = if_tok;
+
+
+
+
+
+
+
+
+
+
+ 
+  /*  TOKEN assign_tok = talloc();
+  TOKEN red_cond = talloc();
+  TOKEN condtok = talloc();  
+  TOKEN numtok = talloc();
+  TOKEN iftok = talloc();
+  TOKEN goto_tok = talloc();
+  TOKEN inc_tok = talloc();  
+
+  // num label token
+  numtok->tokentype = NUMBERTOK;
+  numtok->basicdt = INTEGER;
+  numtok->intval = 0;
+
+  inc_tok->tokentype = NUMBERTOK;
+  inc_tok->basicdt = INTEGER;
+  inc_tok->intval = 1;
+
+  // label token
+  tok->tokentype = OPERATOR;
+  tok -> whichval = LABELOP;
+  tok->operands = numtok;
+
+  // conditional token
+  condtok->tokentype = OPERATOR;
+  condtok -> whichval = LEOP;
+  
+
+   // if token
+  iftok->tokentype = OPERATOR;
+  iftok->whichval = IFOP;
+  
+  iftok->operands =  binop(condtok,copytok(asg->operands),endexpr);
+
+
+  // assignment and label link
+  asg->link = tok;
+  
+   // link label to if
+   tok->link = iftok;
+  
+
+ 
+  // if tokens operand is condtok 
+  condtok->link = statement;
+ 
+
+  // increment token
+  assign_tok->tokentype = OPERATOR;
+  assign_tok -> whichval = ASSIGNOP;
+  assign_tok->operands = asg->operands;
+  (copytok(assign_tok->operands))->link =  binop(PLUSOP, copytok(asg->operands),sign); 
+  
+  copytok((statement->operands))->link = assign_tok;   
+
+  goto_tok->tokentype = OPERATOR;
+  goto_tok->whichval = GOTOOP;
+  goto_tok->operands = numtok;
+   assign_tok->link = goto_tok;
+   return asg; */
+
+return answer;
+
+}
+
 
 
 TOKEN findtype (TOKEN tok)
