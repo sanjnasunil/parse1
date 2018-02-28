@@ -1992,9 +1992,10 @@ return tok;
 TOKEN copytok(TOKEN origtok)
 {
   TOKEN newtok = talloc();
- *newtok = *origtok;
+*newtok = *origtok;
   newtok -> link = NULL;
   newtok -> operands = NULL;
+return newtok;
 
 }
 
@@ -2020,6 +2021,7 @@ TOKEN expres_cpy2 = talloc();
 TOKEN numtok2 = talloc(); 
 TOKEN goto_tok = talloc();
 TOKEN func_tokcpy = talloc(); 
+TOKEN test_cpy = talloc();
 
 // function call
  func_tok = makeprogn(func_tok, statement);
@@ -2035,16 +2037,17 @@ TOKEN func_tokcpy = talloc();
 
 // variable i 
   expres = copytok(asg->operands);
+  
 
 // less than token 
  less_than->tokentype = OPERATOR;
  less_than -> whichval = LEOP;
+ expres->link = endexpr;
  less_than->operands = expres;
- 
  less_than-> link = func_tok;
 
  // func_tok->operands = statement;
- expres -> link = endexpr;
+ //expres -> link = endexpr;
  endexpr->link = NULL;
 
 // label token
@@ -2065,8 +2068,11 @@ TOKEN func_tokcpy = talloc();
   assign_tok->operands = expres_cpy;
 //  statement->link = assign_tok;
 
-func_tokcpy = func_tok->operands;
 
+
+
+func_tokcpy = func_tok->operands;
+//func_tokcpy->link = assign_tok;
   plus_op->tokentype = OPERATOR;
   plus_op -> whichval = PLUSOP;
   plus_op->operands = expres_cpy2;
@@ -2125,7 +2131,7 @@ label_tok->link = if_tok;
   iftok->tokentype = OPERATOR;
   iftok->whichval = IFOP;
   
-  iftok->operands =  binop(condtok,copytok(asg->operands),endexpr);
+  iftok->operands =  binop(condtok,asg->operands,endexpr);
 
 
   // assignment and label link
@@ -2252,7 +2258,7 @@ TOKEN makeif(TOKEN tok, TOKEN exp, TOKEN thenpart, TOKEN elsepart)
           dbugprinttok(thenpart);
           dbugprinttok(elsepart);
         };
-     return tok;
+     return tok;	
    }
 
 TOKEN makeprogn(TOKEN tok, TOKEN statements)
